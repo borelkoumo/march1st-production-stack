@@ -173,7 +173,7 @@ export function buildECSCluster(
        * Amazon ECS deployment circuit breaker automatically rolls back unhealthy
        * service deployments without the need for manual intervention.
        */
-      circuitBreaker: { rollback: true },
+      // circuitBreaker: { rollback: true },
       maxHealthyPercent: 100,
       minHealthyPercent: 50,
       platformVersion: ecs.FargatePlatformVersion.VERSION1_4,
