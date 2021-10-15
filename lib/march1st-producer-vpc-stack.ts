@@ -1,10 +1,9 @@
 import * as cdk from "@aws-cdk/core";
 import * as ec2 from "@aws-cdk/aws-ec2";
-import * as ecs_patterns from "@aws-cdk/aws-ecs-patterns";
 import * as efs from "@aws-cdk/aws-efs";
 import * as rds from "@aws-cdk/aws-rds";
-import * as secretsmanager from "@aws-cdk/aws-secretsmanager";
 import * as elbv2 from "@aws-cdk/aws-elasticloadbalancingv2";
+import * as secretsmanager from "@aws-cdk/aws-secretsmanager";
 /**
  * IMPORT CLASSES
  */
@@ -20,12 +19,8 @@ export class March1StProducerVpcStack extends cdk.Stack {
   efsFileSystem: { fileSystem: efs.FileSystem; accessPoint: efs.AccessPoint };
   ecsCluster: elbv2.ApplicationLoadBalancer;
   databaseInstance: rds.DatabaseInstance;
-
-  // declare dbPassword: secretsmanager.Secret;
-
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
-
     this.vpc = buildVPC(this);
     //this.ec2BastionHost = buildBastionHost(this, this.vpc);
     this.efsFileSystem = buildEFS(this, this.vpc);

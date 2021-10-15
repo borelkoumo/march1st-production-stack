@@ -2,14 +2,14 @@ import * as ec2 from "@aws-cdk/aws-ec2";
 import * as cdk from "@aws-cdk/core";
 import * as rds from "@aws-cdk/aws-rds";
 import * as kms from "@aws-cdk/aws-kms";
-
+import { CONFIG } from "../helpers/Globals";
 export function buildDatabase(
   scope: cdk.Construct,
   vpc: ec2.Vpc
 ): rds.DatabaseInstance {
   // Encryption key for DB
   const dbEncryptionKey = new kms.Key(scope, "DBEncryptionKey");
-  const username = "admin";
+  const username = CONFIG.RDS.USERNAME;
   const dbInstance = new rds.DatabaseInstance(scope, "PostgreSQLInstance", {
     engine: rds.DatabaseInstanceEngine.postgres({
       version: rds.PostgresEngineVersion.VER_10_17,
@@ -22,12 +22,13 @@ export function buildDatabase(
     // By default, the master password will be generated and stored in AWS Secrets Manager.
     // Creates an admin user of postgres with a generated password,
     credentials: rds.Credentials.fromGeneratedSecret(username, {
-      secretName: "POSTGRE_SQL_DB_PASSWORD",
+      secretName: CONFIG.RDS.SECRET_NAME,
     }),
     vpc,
     vpcSubnets: {
-      subnetType: ec2.SubnetType.PRIVATE_WITH_NAT,
+      subnetType: ec2.SubnetType.PUBLIC,
     },
+    databaseName: CONFIG.RDS.DATABASE_NAME,
     // The allocated storage size, specified in gigabytes (GB).
     // optional, default: 100
     allocatedStorage: 10,
@@ -35,7 +36,7 @@ export function buildDatabase(
     // This is the upper limit to which RDS can automatically scale the storage.
     maxAllocatedStorage: 100,
     // Specifies if the database instance is a multiple Availability Zone deployment.
-    multiAz: true,
+    //multiAz: true,
     // If you specify true, it creates an instance with a publicly resolvable DNS name, which resolves to a public IP address.
     // If you specify false, it creates an internal instance with a DNS name that resolves to a private IP address.
     publiclyAccessible: true,
@@ -75,5 +76,6 @@ export function buildDatabase(
   new cdk.CfnOutput(scope, "DB User", {
     value: `${username} (password in SSM)`,
   });
+
   return dbInstance;
 }

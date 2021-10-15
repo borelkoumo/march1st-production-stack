@@ -1,5 +1,5 @@
 #!/bin/bash
-sudo -i
+#sudo -i
 yum update -y
 
 # Install NVM (a command line utility to install and manage Node.js versions for specific users)

@@ -2,7 +2,12 @@ import * as cdk from "@aws-cdk/core";
 import * as ec2 from "@aws-cdk/aws-ec2";
 import { CONFIG } from "../helpers/Globals";
 import * as efs from "@aws-cdk/aws-efs";
-
+import * as s3 from "@aws-cdk/aws-s3";
+import {
+  GithubSyncSource,
+  S3ArchiveSyncSource,
+  SyncedAccessPoint,
+} from "cdk-efs-assets";
 export function buildEFS(
   scope: cdk.Construct,
   vpc: ec2.Vpc
@@ -31,7 +36,7 @@ export function buildEFS(
 
   // Add Access Point
   const efsAccessPoint = efsFileSystem.addAccessPoint(`AccessPoint`, {
-    path: CONFIG.STRAPI_EFS.ACCESS_POINT, // In this case, the value is /strapi
+    path: CONFIG.STRAPI.EFS.ACCESS_POINT, // In this case, the value is /strapi
     posixUser: {
       uid: "1000",
       gid: "1000",
@@ -42,6 +47,39 @@ export function buildEFS(
       permissions: "755",
     },
   });
+
+  // /**
+  //  * Populate fs
+  //  */
+  // const bucket = s3.Bucket.fromBucketName(
+  //   scope,
+  //   "Bucket",
+  //   "march1st-production-bucket"
+  // );
+
+  // const efsAccessPoint = new SyncedAccessPoint(scope, "StrapiAccessPoint", {
+  //   vpc: vpc,
+  //   fileSystem: efsFileSystem,
+    // path: CONFIG.STRAPI.EFS.ACCESS_POINT,
+  //   posixUser: {
+  //     uid: "1000",
+  //     gid: "1000",
+  //   },
+  //   createAcl: {
+  //     ownerGid: "1000",
+  //     ownerUid: "1000",
+  //     permissions: "755",
+  //   },
+  //   syncSource: new GithubSyncSource({
+  //     vpc,
+  //     repository: "https://github.com/username/repo.git",
+  //     secret: {
+  //       id: "github",
+  //       key: "oauth_token",
+  //     },
+  //   }),
+  // });
+
   new cdk.CfnOutput(scope, "EFS ID", {
     value: efsFileSystem.fileSystemId,
   });
@@ -49,7 +87,7 @@ export function buildEFS(
     value: efsAccessPoint.accessPointId,
   });
   new cdk.CfnOutput(scope, "Access Point PATH", {
-    value: CONFIG.STRAPI_EFS.ACCESS_POINT,
+    value: CONFIG.STRAPI.EFS.ACCESS_POINT,
   });
 
   return { fileSystem: efsFileSystem, accessPoint: efsAccessPoint };
