@@ -48,19 +48,14 @@ export function buildEFS(
     },
   });
 
-  // /**
-  //  * Populate fs
-  //  */
-  // const bucket = s3.Bucket.fromBucketName(
-  //   scope,
-  //   "Bucket",
-  //   "march1st-production-bucket"
-  // );
+  /**
+   * Populate fs
+   */
 
   // const efsAccessPoint = new SyncedAccessPoint(scope, "StrapiAccessPoint", {
   //   vpc: vpc,
   //   fileSystem: efsFileSystem,
-    // path: CONFIG.STRAPI.EFS.ACCESS_POINT,
+  //   path: CONFIG.STRAPI.EFS.ACCESS_POINT,
   //   posixUser: {
   //     uid: "1000",
   //     gid: "1000",
@@ -72,11 +67,8 @@ export function buildEFS(
   //   },
   //   syncSource: new GithubSyncSource({
   //     vpc,
-  //     repository: "https://github.com/username/repo.git",
-  //     secret: {
-  //       id: "github",
-  //       key: "oauth_token",
-  //     },
+  //     repository: "https://github.com/borelkoumo/strapi.git",
+  //     syncDirectoryPath: "/",
   //   }),
   // });
 

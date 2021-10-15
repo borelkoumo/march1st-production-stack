@@ -21,45 +21,28 @@ const CONFIG = {
     },
     SERVICE: {
       NAME: "strapi-svc",
-      TARGET_GROUP_NAME: "strapi-tg",
-      ALB_PATH: "/strapi*",
+      ALB_NAME: "strapi-alb",
       DESIRED_COUNT: 2,
+      ALB_LISTENER_PORT: 80,
+      DESIRED_TASK_COUNT: 1,
     },
   },
   /**
    * CAMUNDA CONFIG
    */
-  CAMUNDA: {
-    EFS: {
-      ACCESS_POINT: "/camunda",
-      VOLUME_NAME: "camunda-volume",
-    },
-    CONTAINER: {
-      NAME: "strapi-container",
-      ECR_IMAGE: "strapi-with-efs",
-      ECR_IMAGETAG: "v4",
-      MOUNT_POINT: "/src/app",
-      HOST_PORT: 1337,
-      CONTAINER_PORT: 1337,
-    },
-    ALB_PATH: "/camunda/*",
-  },
+  CAMUNDA: {},
+
   /**
-   * ALB CONFIG
+   * RDS CONFIG
    */
-  ALB: {
-    NAME: "production-alb",
-    SERVICE_NAME: "Strapi-Service",
-    LISTENER_PORT: 80,
-    DESIRED_TASK_COUNT: 1,
-  },
   RDS: {
     // Define the name given to a database that Amazon RDS creates when it creates the DB instance
-    DATABASE_NAME: "strapi",
+    DB_NAME: "strapi",
     // The master user of the DB
-    USERNAME: "postgres",
+    DB_USER: "postgres",
     // the master password will be generated and stored in AWS Secrets Manager.
-    /**
+    DB_SECRET_NAME: "POSTGRESQL_SECRET",
+    /** 
      * {
         "password": "tHRoAJ=pQ47BKvprOm2fs-.gjX3u,D",
         "engine": "postgres",
@@ -69,7 +52,6 @@ const CONFIG = {
         "username": "postgres"
       }
      */
-    SECRET_NAME: "POSTGRESQL_SECRET",
   },
 };
 Object.freeze(CONFIG);

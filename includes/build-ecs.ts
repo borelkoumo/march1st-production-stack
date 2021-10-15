@@ -5,13 +5,13 @@ import * as iam from "@aws-cdk/aws-iam";
 import { CONFIG } from "../helpers/Globals";
 import * as efs from "@aws-cdk/aws-efs";
 import * as ecr from "@aws-cdk/aws-ecr";
-import * as elbv2 from "@aws-cdk/aws-elasticloadbalancingv2";
 import * as secretsmanager from "@aws-cdk/aws-secretsmanager";
+import * as ecs_patterns from "@aws-cdk/aws-ecs-patterns";
 export function buildECSCluster(
   scope: cdk.Construct,
   vpc: ec2.Vpc,
   efs: { fileSystem: efs.FileSystem; accessPoint: efs.AccessPoint }
-): elbv2.ApplicationLoadBalancer {
+): ecs_patterns.ApplicationLoadBalancedFargateService {
   /**
    * ECS CLUSTER
    */
@@ -51,7 +51,7 @@ export function buildECSCluster(
   const dbSecret = secretsmanager.Secret.fromSecretNameV2(
     scope,
     "DBSecretImported",
-    CONFIG.RDS.SECRET_NAME
+    CONFIG.RDS.DB_SECRET_NAME
   );
 
   /**
@@ -85,7 +85,9 @@ export function buildECSCluster(
         efsVolumeConfiguration: {
           fileSystemId: efs.fileSystem.fileSystemId,
           transitEncryption: "ENABLED",
-          rootDirectory: "/",
+          authorizationConfig: {
+            accessPointId: efs.accessPoint.accessPointId,
+          },
         },
       },
     ],
@@ -125,7 +127,7 @@ export function buildECSCluster(
     }),
     environment: {
       // clear text, not for sensitive data
-      DATABASE_NAME: CONFIG.RDS.DATABASE_NAME,
+      DATABASE_NAME: CONFIG.RDS.DB_NAME,
       DATABASE_SSL: "false",
     },
     secrets: {
@@ -145,72 +147,99 @@ export function buildECSCluster(
   /**
    * STRAPI SERVICE
    */
-  const strapiService = new ecs.FargateService(scope, "Strapi-Service", {
-    serviceName: CONFIG.STRAPI.SERVICE.NAME,
-    cluster: ecsCluster,
-    taskDefinition: strapiTaskDef,
-    // Determines whether the service will be assigned a public IP address. (optional, default: false)
-    assignPublicIp: true,
-    vpcSubnets: vpc.selectSubnets({
-      subnetType: ec2.SubnetType.PRIVATE_WITH_NAT,
-    }),
-    desiredCount: CONFIG.STRAPI.SERVICE.DESIRED_COUNT,
-    healthCheckGracePeriod: cdk.Duration.minutes(5),
-    minHealthyPercent: 50,
-    maxHealthyPercent: 200,
-    platformVersion: ecs.FargatePlatformVersion.LATEST,
-  });
+  // Our cluster will contain only one service
+  // An Amazon ECS service allows you to run and maintain a specified number of instances of a task definition simultaneously in an Amazon ECS cluster.
+  const alb = new ecs_patterns.ApplicationLoadBalancedFargateService(
+    scope,
+    "Strapi-Service",
+    {
+      // Determines whether the service will be assigned a public IP address. (optional, default: false)
+      assignPublicIp: true,
+      // The name of the cluster that hosts the service.
+      cluster: ecsCluster,
+      taskDefinition: strapiTaskDef,
+      // The subnets to associate with the service.
+      taskSubnets: vpc.selectSubnets({
+        subnetType: ec2.SubnetType.PRIVATE_WITH_NAT,
+      }),
+      desiredCount: CONFIG.STRAPI.SERVICE.DESIRED_COUNT,
+      healthCheckGracePeriod: cdk.Duration.minutes(5),
+      // Listener port of the application load balancer that will serve traffic to the service.
+      loadBalancerName: CONFIG.STRAPI.SERVICE.ALB_NAME,
+      listenerPort: CONFIG.STRAPI.SERVICE.ALB_LISTENER_PORT,
+      publicLoadBalancer: true, // Default is false
+      serviceName: CONFIG.STRAPI.SERVICE.NAME,
+      /**
+       * Amazon ECS deployment circuit breaker automatically rolls back unhealthy
+       * service deployments without the need for manual intervention.
+       */
+      circuitBreaker: { rollback: true },
+      maxHealthyPercent: 100,
+      minHealthyPercent: 50,
+      platformVersion: ecs.FargatePlatformVersion.VERSION1_4,
+    }
+  );
+  // const strapiService = new ecs.FargateService(scope, "Strapi-Service", {
+  //   serviceName: CONFIG.STRAPI.SERVICE.NAME,
+  //   cluster: ecsCluster,
+  //   taskDefinition: strapiTaskDef,
+  //   // Determines whether the service will be assigned a public IP address. (optional, default: false)
+  //   assignPublicIp: true,
+  //   vpcSubnets: vpc.selectSubnets({
+  //     subnetType: ec2.SubnetType.PRIVATE_WITH_NAT,
+  //   }),
+  // });
 
   /**
    * APPLICATION LOAD BALANCER
    */
-  const alb = new elbv2.ApplicationLoadBalancer(scope, "Production-LB", {
-    loadBalancerName: CONFIG.ALB.NAME,
-    vpcSubnets: vpc.selectSubnets({ subnetType: ec2.SubnetType.PUBLIC }),
-    vpc,
-    internetFacing: true,
-  });
-  // Add a listener and open up the load balancer's security group
-  // to the world.
-  const httpListener = alb.addListener("Https-Listener", {
-    port: 80,
-    open: true,
-    defaultAction: elbv2.ListenerAction.fixedResponse(200, {
-      contentType: "application/json",
-      messageBody: "Welcome to our March1st production load balancer",
-    }),
-  });
+  // const alb = new elbv2.ApplicationLoadBalancer(scope, "Production-LB", {
+  //   loadBalancerName: CONFIG.ALB.NAME,
+  //   vpcSubnets: vpc.selectSubnets({ subnetType: ec2.SubnetType.PUBLIC }),
+  //   vpc,
+  //   internetFacing: true,
+  // });
+  // // Add a listener and open up the load balancer's security group
+  // // to the world.
+  // const httpListener = alb.addListener("Https-Listener", {
+  //   port: 80,
+  //   open: true,
+  //   defaultAction: elbv2.ListenerAction.fixedResponse(200, {
+  //     contentType: "application/json",
+  //     messageBody: "Welcome to our March1st production load balancer",
+  //   }),
+  // });
 
-  /**
-   * ADD STRAPI TO ALB PATH /strapi/*
-   */
-  // Add Strapi containers as targets in target group
-  httpListener.addTargets("strapi-tg", {
-    targetGroupName: CONFIG.STRAPI.SERVICE.TARGET_GROUP_NAME,
-    protocol: elbv2.ApplicationProtocol.HTTP,
-    port: CONFIG.STRAPI.CONTAINER.HOST_PORT,
-    targets: [strapiService],
-    conditions: [
-      // Path here is /strapi/*
-      elbv2.ListenerCondition.pathPatterns([CONFIG.STRAPI.SERVICE.ALB_PATH]),
-    ],
-    priority: 1,
-    healthCheck: {
-      enabled: true,
-      interval: cdk.Duration.seconds(30),
-      path: "/",
-      port: "traffic-port",
-      protocol: elbv2.Protocol.HTTP,
-      unhealthyThresholdCount: 5,
-      healthyThresholdCount: 2,
-    },
-  });
+  // /**
+  //  * ADD STRAPI TO ALB PATH /strapi/*
+  //  */
+  // // Add Strapi containers as targets in target group
+  // httpListener.addTargets("strapi-tg", {
+  //   targetGroupName: CONFIG.STRAPI.SERVICE.TARGET_GROUP_NAME,
+  //   protocol: elbv2.ApplicationProtocol.HTTP,
+  //   port: CONFIG.STRAPI.CONTAINER.HOST_PORT,
+  //   targets: [strapiService],
+  //   conditions: [
+  //     // Path here is /strapi/*
+  //     elbv2.ListenerCondition.pathPatterns([CONFIG.STRAPI.SERVICE.ALB_PATH]),
+  //   ],
+  //   priority: 1,
+  //   healthCheck: {
+  //     enabled: true,
+  //     interval: cdk.Duration.seconds(30),
+  //     path: "/",
+  //     port: "traffic-port",
+  //     protocol: elbv2.Protocol.HTTP,
+  //     unhealthyThresholdCount: 5,
+  //     healthyThresholdCount: 2,
+  //   },
+  // });
 
   // Allow access to EFS from Fargate ECS
-  efs.fileSystem.connections.allowDefaultPortFrom(strapiService.connections);
+  efs.fileSystem.connections.allowDefaultPortFrom(alb.loadBalancer.connections);
 
   new cdk.CfnOutput(scope, "ALB DNS", {
-    value: alb.loadBalancerDnsName,
+    value: alb.loadBalancer.loadBalancerDnsName,
   });
 
   return alb;

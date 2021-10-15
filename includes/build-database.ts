@@ -9,7 +9,7 @@ export function buildDatabase(
 ): rds.DatabaseInstance {
   // Encryption key for DB
   const dbEncryptionKey = new kms.Key(scope, "DBEncryptionKey");
-  const username = CONFIG.RDS.USERNAME;
+  const username = CONFIG.RDS.DB_USER;
   const dbInstance = new rds.DatabaseInstance(scope, "PostgreSQLInstance", {
     engine: rds.DatabaseInstanceEngine.postgres({
       version: rds.PostgresEngineVersion.VER_10_17,
@@ -22,13 +22,13 @@ export function buildDatabase(
     // By default, the master password will be generated and stored in AWS Secrets Manager.
     // Creates an admin user of postgres with a generated password,
     credentials: rds.Credentials.fromGeneratedSecret(username, {
-      secretName: CONFIG.RDS.SECRET_NAME,
+      secretName: CONFIG.RDS.DB_SECRET_NAME,
     }),
     vpc,
     vpcSubnets: {
       subnetType: ec2.SubnetType.PUBLIC,
     },
-    databaseName: CONFIG.RDS.DATABASE_NAME,
+    databaseName: CONFIG.RDS.DB_NAME,
     // The allocated storage size, specified in gigabytes (GB).
     // optional, default: 100
     allocatedStorage: 10,
