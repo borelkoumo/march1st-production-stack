@@ -1,8 +1,8 @@
 {
-  "name": "march1st-producer-vpc",
+  "name": "march1st-stack",
   "version": "0.1.0",
   "bin": {
-    "march1st-producer-vpc": "bin/march1st-producer-vpc.js"
+    "march1st-producer-vpc": "bin/march1st-stack.js"
   },
   "scripts": {
     "build": "tsc",

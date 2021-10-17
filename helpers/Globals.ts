@@ -13,18 +13,25 @@ const CONFIG = {
     CONTAINER: {
       NAME: "strapi-container",
       FAMILY: "strapi",
-      ECR_IMAGE: "strapi-with-efs",
-      ECR_IMAGETAG: "v4",
-      MOUNT_POINT: "/src/app",
+      WORKING_DIR: "/srv/app",
       HOST_PORT: 1337,
       CONTAINER_PORT: 1337,
+      ECR: {
+        IMAGE: "strapi-with-efs",
+        TAG: "v4",
+      },
+      DOCKER: {
+        IMAGE: "strapi/strapi",
+        TAG: "3.6.8-node14",
+      },
     },
     SERVICE: {
       NAME: "strapi-svc",
       ALB_NAME: "strapi-alb",
-      DESIRED_COUNT: 2,
-      ALB_LISTENER_PORT: 80,
       DESIRED_TASK_COUNT: 1,
+      AUTO_SCALING_MIN: 1,
+      AUTO_SCALING_MAX: 5,
+      ALB_LISTENER_PORT: 80,
     },
   },
   /**
@@ -52,6 +59,10 @@ const CONFIG = {
         "username": "postgres"
       }
      */
+  },
+  EC2: {
+    // This references an existing key pair in the account
+    KEY_PAIR_NAME: `strapi-web-server-key-pair`,
   },
 };
 Object.freeze(CONFIG);

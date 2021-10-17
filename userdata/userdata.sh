@@ -1,5 +1,3 @@
-#!/bin/bash
-#sudo -i
 yum update -y
 
 # Install NVM (a command line utility to install and manage Node.js versions for specific users)
@@ -49,18 +47,25 @@ chmod +x ./kubectl
 mkdir -p $HOME/bin && cp ./kubectl $HOME/bin/kubectl && export PATH=$PATH:$HOME/bin
 
 # Install Nginx
-releasever=2
-basearch=x86_64
-bash -c "cat << EOF >>  /etc/yum.repos.d/nginx.repo
-[nginx-stable]
-name=nginx stable repo
-baseurl=http://nginx.org/packages/amzn2/$releasever/$basearch/
-gpgcheck=1
-enabled=1
-gpgkey=https://nginx.org/keys/nginx_signing.key
-module_hotfixes=true
-EOF"
+# releasever=2
+# basearch=x86_64
+# bash -c "cat << EOF >>  /etc/yum.repos.d/nginx.repo
+# [nginx-stable]
+# name=nginx stable repo
+# baseurl=http://nginx.org/packages/amzn2/$releasever/$basearch/
+# gpgcheck=1
+# enabled=1
+# gpgkey=https://nginx.org/keys/nginx_signing.key
+# module_hotfixes=true
+# EOF"
+# yum update -y
+# yum install nginx -y
+# systemctl enable nginx.service
+# systemctl start nginx
+
+# Install httpd
 yum update -y
-yum install nginx -y
-systemctl enable nginx.service
-systemctl start nginx
+yum install -y httpd
+systemctl start httpd.service
+systemctl enable httpd.service
+echo "Hello World from $(hostname -f)" > /var/www/html/index.html

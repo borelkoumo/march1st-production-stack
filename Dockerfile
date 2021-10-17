@@ -1,16 +1,16 @@
-FROM strapi/base:14
+ARG BASE_VERSION
+FROM strapi/base:${BASE_VERSION}
 
-# Set up working directory that will be used
-WORKDIR /src/app
+ARG STRAPI_VERSION
+RUN yarn global add strapi@${STRAPI_VERSION}
 
-COPY ./ ./
+RUN mkdir /srv/app && chown 1000:1000 -R /srv/app
 
-RUN ls -al
+WORKDIR /srv/app
 
-# Run on port 1337
-EXPOSE 1337
+VOLUME /srv/app
 
-# We need to define the command to launch when we are going to run the image.
-# We use the keyword ‘CMD’ to do that.
-# The following command will execute “yarn start”.
-CMD ["npm", "run", "develop"]
+COPY docker-entrypoint.sh /usr/local/bin/
+ENTRYPOINT ["docker-entrypoint.sh"]
+
+CMD ["strapi", "develop"]
