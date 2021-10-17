@@ -17,7 +17,7 @@ export interface EC2StackProps extends cdk.StackProps {
 export class EC2Stack extends cdk.Stack {
   public readonly ec2BastionHost: ec2.Instance;
   constructor(scope: cdk.Construct, id: string, props: EC2StackProps) {
-    super(scope, id, props);
+    super(scope, id, props); 
 
     const vpc = props.vpc;
     // Create a key pair to be used with this ec2 instance
